@@ -14,10 +14,8 @@
             </if>
             <data name="feld_nr.filtered" source="http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld&#30;http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#nr"/>
         </combine>
-        <data name="http://purl.org/dc/elements/1.1/creator" source="@__TRANSFORMATION_OUTPUT_VARIABLE__5"/>
         <data name="@__TRANSFORMATION_OUTPUT_VARIABLE__5" source="@feld_nr"/>
         <data name="@feld_type" source="http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld&#30;http://www.w3.org/1999/02/22-rdf-syntax-ns#type"/>
-        <data name="http://purl.org/dc/elements/1.1/creator" source="@__TRANSFORMATION_OUTPUT_VARIABLE__6"/>
         <data name="@__TRANSFORMATION_OUTPUT_VARIABLE__6" source="@feld_type"/>
         <combine flushWith="http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld" includeSubEntities="true" name="@feld_value" reset="true" sameEntity="true" value="${feld_value.filtered}">
             <if>
@@ -29,7 +27,9 @@
             </if>
             <data name="feld_value.filtered" source="http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld&#30;http://www.w3.org/1999/02/22-rdf-syntax-ns#value"/>
         </combine>
-        <data name="http://purl.org/dc/elements/1.1/contributor" source="@__TRANSFORMATION_OUTPUT_VARIABLE__7"/>
         <data name="@__TRANSFORMATION_OUTPUT_VARIABLE__7" source="@feld_value"/>
+        <data name="http://purl.org/dc/elements/1.1/contributor" source="@__TRANSFORMATION_OUTPUT_VARIABLE__7"/>        
+        <data name="http://purl.org/dc/elements/1.1/creator" source="@__TRANSFORMATION_OUTPUT_VARIABLE__6"/>        
+        <data name="http://purl.org/dc/elements/1.1/creator" source="@__TRANSFORMATION_OUTPUT_VARIABLE__5"/>
     </rules>
 </metamorph>

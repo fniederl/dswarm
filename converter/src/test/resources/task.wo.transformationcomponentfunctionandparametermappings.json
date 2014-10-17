@@ -35,10 +35,6 @@
                 "attribute_path": {
                     "id": 11,
                     "attributes": [{
-                        "id": 99,
-                        "uri": "http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld",
-                        "name": "feld"
-                    }, {
                         "id": 98,
                         "uri": "http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#nr",
                         "name": "nr"

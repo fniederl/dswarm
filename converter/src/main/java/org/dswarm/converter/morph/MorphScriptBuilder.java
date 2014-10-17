@@ -15,6 +15,13 @@
  */
 package org.dswarm.converter.morph;
 
+import com.google.common.collect.Table.Cell;
+import com.google.common.collect.Table;
+import com.google.common.collect.HashBasedTable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -46,7 +52,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -65,7 +70,6 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
-
 import org.dswarm.converter.DMPConverterException;
 import org.dswarm.init.util.DMPStatics;
 import org.dswarm.persistence.model.job.Component;
@@ -140,6 +144,8 @@ public class MorphScriptBuilder {
 	}
 
 	private Document doc;
+	
+	Table<String, String, String> outputMappingVars = HashBasedTable.create();
 
 	private Element varDefinition(final String key, final String value) {
 		final Element var = doc.createElement("var");
@@ -242,10 +248,12 @@ public class MorphScriptBuilder {
 
 		for (final Mapping mapping : task.getJob().getMappings()) {
 			metas.add(MorphScriptBuilder.MAPPING_PREFIX + mapping.getId());
-
+			
 			createTransformation(rules, mapping);
 		}
-
+		
+		addAllOutputMappings(rules);
+		
 		metaName.setTextContent(Joiner.on(", ").join(metas));
 
 		return this;
@@ -303,7 +311,21 @@ public class MorphScriptBuilder {
 
 		final List<String> variablesFromMappingOutput = getParameterMappingKeys(mappingOutputName, transformationComponent);
 
-		addMappingOutputMapping(variablesFromMappingOutput, mapping.getOutputAttributePath(), rules);
+		final String outputAttributePathStringXMLEscaped = StringEscapeUtils.escapeXml(mapping.getOutputAttributePath().getAttributePath().toAttributePath());
+		String outputEntityName = null;
+		String outputLiteralName = null;
+		if (outputAttributePathStringXMLEscaped.contains(DMPStatics.ATTRIBUTE_DELIMITER.toString())) {
+		
+			outputEntityName = outputAttributePathStringXMLEscaped.substring(0, outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER));
+			outputLiteralName = outputAttributePathStringXMLEscaped.substring(outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER)+1, outputAttributePathStringXMLEscaped.length());
+		} else {
+			
+			outputEntityName = "";
+			outputLiteralName = outputAttributePathStringXMLEscaped;
+		}
+		outputMappingVars.put(outputEntityName, outputLiteralName, variablesFromMappingOutput.get(0));
+		
+		//addMappingOutputMapping(variablesFromMappingOutput, mapping.getOutputAttributePath(), rules);
 
 		processTransformationComponentFunction(transformationComponent, mapping, mappingInputsVariablesMap, rules);
 	}
@@ -502,7 +524,16 @@ public class MorphScriptBuilder {
 		// .ESCAPE_XML11.with(NumericEntityEscaper.between(0x7f, Integer.MAX_VALUE)).translate( <- also doesn't work
 		final String outputAttributePathStringXMLEscaped = StringEscapeUtils.escapeXml(mappingOutput.getAttributePath().toAttributePath());
 
-		// TODO: maybe add mapping to default output variable identifier, if output attribute path is not part of the parameter
+		String outputEntityName = null;
+		String outputLiteralName = outputAttributePathStringXMLEscaped;
+		
+		if (outputAttributePathStringXMLEscaped.contains(DMPStatics.ATTRIBUTE_DELIMITER.toString())) {
+		
+			outputEntityName = outputAttributePathStringXMLEscaped.substring(0, outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER));
+			outputLiteralName = outputAttributePathStringXMLEscaped.substring(outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER)+1, outputAttributePathStringXMLEscaped.length());
+		}
+		
+		// TODO: maybe add m apping to default output variable identifier, if output attribute path is not part of the parameter
 		// mappings of the transformation component
 		// maybe for later: separate parameter mapppings into input parameter mappings and output parameter mappings
 
@@ -515,9 +546,107 @@ public class MorphScriptBuilder {
 
 			final Element dataOutput = doc.createElement("data");
 			dataOutput.setAttribute("source", "@" + variable);
-			dataOutput.setAttribute("name", outputAttributePathStringXMLEscaped);
-			rules.appendChild(dataOutput);
+			dataOutput.setAttribute("name", outputLiteralName);
+
+			if (outputEntityName != null && !outputEntityName.isEmpty()) {
+
+				final NodeList existingEntityNodes = rules.getElementsByTagName("entity");
+
+				final int entityNodeIndex = getEntityNodeIndexForCombine(existingEntityNodes, outputEntityName);
+
+				if (entityNodeIndex >= 0) {
+
+					final Element entityNode = (Element) existingEntityNodes.item(entityNodeIndex);
+
+					entityNode.insertBefore(dataOutput, entityNode.getFirstChild());
+					rules.replaceChild(entityNode, existingEntityNodes.item(entityNodeIndex));
+
+				} else {
+
+					final Element entityOutput = doc.createElement("entity");
+					entityOutput.setAttribute("name", outputEntityName);
+					entityOutput.appendChild(dataOutput);
+					rules.appendChild(entityOutput);
+				}
+
+			} else {
+
+				rules.appendChild(dataOutput);
+			}
 		}
+	}
+	
+	private void addAllOutputMappings(final Element rules) {
+		
+		List<String> processedOutputAttrPaths = Lists.newArrayList();
+		
+		for (Cell<String, String, String> cell: outputMappingVars.cellSet()) {
+			
+			final String outputAttributePath = cell.getRowKey();
+			
+			if (processedOutputAttrPaths.contains(outputAttributePath))
+				continue;
+			
+			processedOutputAttrPaths.add(outputAttributePath);
+			
+			final Map<String, String> groupedAttributtes = outputMappingVars.row(outputAttributePath);
+			
+			if (outputAttributePath.isEmpty()) {
+				
+				//flat datas
+				addOutputDatas(groupedAttributtes, rules);
+			} else {
+				
+				//datas in entiy structure
+				addHierarchicalDatas(outputAttributePath, groupedAttributtes, rules);
+			}
+		}
+		
+	}
+
+	private void addHierarchicalDatas(final String outputAttributePath, final Map<String, String> groupedAttributes, final Element rules) {
+		
+		final String[] entities = outputAttributePath.split(DMPStatics.ATTRIBUTE_DELIMITER.toString());
+		
+		final Element rootEntity = doc.createElement("entity");
+		
+		rootEntity.setAttribute("name", entities[0]);
+		
+		rules.appendChild(addAllSubEntities(rootEntity, entities, 1, groupedAttributes));		
+		
+	}
+	
+	private Element addAllSubEntities(Element hierarchicalEntities, final String[] entities, int counter, final Map<String, String> groupedAttributes) {
+		
+		if (entities.length > counter) {	
+
+			final Element entity = doc.createElement("entity");
+			
+			entity.setAttribute("name", entities[counter++]);
+		
+			hierarchicalEntities.appendChild(entity);
+			addAllSubEntities(entity, entities, counter, groupedAttributes);
+
+		} else {
+			
+			addOutputDatas(groupedAttributes, hierarchicalEntities);
+		}
+			
+		return hierarchicalEntities;
+	}
+
+	private void addOutputDatas(final Map<String, String> datasNameSourceVals, final Element elem) {
+
+		for (Entry<String, String> dataVals : datasNameSourceVals.entrySet()) {
+			
+			final Element data = doc.createElement("data");
+
+			data.setAttribute("name", dataVals.getKey());
+			
+			data.setAttribute("source", "@" + dataVals.getValue());
+		
+			elem.appendChild(data);
+		}	
 	}
 
 	private void mapMappingInputToMappingOutput(final Mapping mapping, final Element rules) {
@@ -1008,4 +1137,22 @@ public class MorphScriptBuilder {
 
 		return attributes;
 	}
+
+	private int getEntityNodeIndexForCombine(final NodeList existingEntityNodes, final String outputEntityName) {
+
+		for (int i = 0; i < existingEntityNodes.getLength(); i++) {
+
+			if (existingEntityNodes.item(i).getNodeType() == Node.ELEMENT_NODE) {
+
+				final Element entityNode = (Element) existingEntityNodes.item(i);
+
+				if (entityNode.getAttribute("name").equals(outputEntityName))
+
+					return i;
+			}
+		}
+
+		return -1;
+	}
+
 }

@@ -72,6 +72,24 @@ public class MorphScriptBuilderTest extends GuicedTest {
 
 		compareTaskGeneratedMorphscript("dd-528.mabxml.task.json", "dd-528.mabxml.morph.xml");
 	}
+	
+	@Test
+	public void testSubSchemataToMorph() throws Exception {
+	
+		compareTaskGeneratedMorphscript("dd-735/sub.entity.1level.mabxml.task.json", "dd-735/sub.entity.1level.mabxml.morph.xml");
+	}
+	
+	@Test
+	public void testSubSubSchemataToMorph() throws Exception {
+	
+		compareTaskGeneratedMorphscript("dd-735/sub.entity.2level.mabxml.task.json", "dd-735/sub.entity.2level.mabxml.morph.xml");
+	}
+	
+	@Test
+	public void testSubSubSubSchemataToMorph() throws Exception {
+	
+		compareTaskGeneratedMorphscript("dd-735/sub.entity.3level.mabxml.task.json", "dd-735/sub.entity.3level.mabxml.morph.xml");
+	}
 
 	private void compareTaskGeneratedMorphscript(final String taskJSONFileName, final String morphFileName) throws Exception {
 
