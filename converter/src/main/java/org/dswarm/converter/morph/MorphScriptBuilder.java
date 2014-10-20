@@ -312,18 +312,18 @@ public class MorphScriptBuilder {
 		final List<String> variablesFromMappingOutput = getParameterMappingKeys(mappingOutputName, transformationComponent);
 
 		final String outputAttributePathStringXMLEscaped = StringEscapeUtils.escapeXml(mapping.getOutputAttributePath().getAttributePath().toAttributePath());
-		String outputEntityName = null;
-		String outputLiteralName = null;
+		String outputEntityAttribute = null;
+		String outputLiteralAttribute = null;
 		if (outputAttributePathStringXMLEscaped.contains(DMPStatics.ATTRIBUTE_DELIMITER.toString())) {
 		
-			outputEntityName = outputAttributePathStringXMLEscaped.substring(0, outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER));
-			outputLiteralName = outputAttributePathStringXMLEscaped.substring(outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER)+1, outputAttributePathStringXMLEscaped.length());
+			outputEntityAttribute = outputAttributePathStringXMLEscaped.substring(0, outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER));
+			outputLiteralAttribute = outputAttributePathStringXMLEscaped.substring(outputAttributePathStringXMLEscaped.lastIndexOf(DMPStatics.ATTRIBUTE_DELIMITER)+1, outputAttributePathStringXMLEscaped.length());
 		} else {
 			
-			outputEntityName = "";
-			outputLiteralName = outputAttributePathStringXMLEscaped;
+			outputEntityAttribute = "";
+			outputLiteralAttribute = outputAttributePathStringXMLEscaped;
 		}
-		outputMappingVars.put(outputEntityName, outputLiteralName, variablesFromMappingOutput.get(0));
+		outputMappingVars.put(variablesFromMappingOutput.get(0), outputEntityAttribute, outputLiteralAttribute);
 		
 		//addMappingOutputMapping(variablesFromMappingOutput, mapping.getOutputAttributePath(), rules);
 
@@ -582,29 +582,29 @@ public class MorphScriptBuilder {
 		
 		for (Cell<String, String, String> cell: outputMappingVars.cellSet()) {
 			
-			final String outputAttributePath = cell.getRowKey();
+			final String outputAttributePath = cell.getColumnKey();
 			
 			if (processedOutputAttrPaths.contains(outputAttributePath))
 				continue;
 			
 			processedOutputAttrPaths.add(outputAttributePath);
 			
-			final Map<String, String> groupedAttributtes = outputMappingVars.row(outputAttributePath);
+			final Map<String, String> groupedLiteralAttributes = outputMappingVars.column(outputAttributePath);
 			
 			if (outputAttributePath.isEmpty()) {
 				
-				//flat datas
-				addOutputDatas(groupedAttributtes, rules);
+				//flat hierarchy, datas without entities
+				addOutputDatas(groupedLiteralAttributes, rules);
 			} else {
 				
 				//datas in entiy structure
-				addHierarchicalDatas(outputAttributePath, groupedAttributtes, rules);
+				addHierarchicalDatas(outputAttributePath, groupedLiteralAttributes, rules);
 			}
 		}
 		
 	}
 
-	private void addHierarchicalDatas(final String outputAttributePath, final Map<String, String> groupedAttributes, final Element rules) {
+	private void addHierarchicalDatas(final String outputAttributePath, final Map<String, String> groupedLiteralAttributes, final Element rules) {
 		
 		final String[] entities = outputAttributePath.split(DMPStatics.ATTRIBUTE_DELIMITER.toString());
 		
@@ -612,7 +612,7 @@ public class MorphScriptBuilder {
 		
 		rootEntity.setAttribute("name", entities[0]);
 		
-		rules.appendChild(addAllSubEntities(rootEntity, entities, 1, groupedAttributes));		
+		rules.appendChild(addAllSubEntities(rootEntity, entities, 1, groupedLiteralAttributes));		
 		
 	}
 	
@@ -641,9 +641,9 @@ public class MorphScriptBuilder {
 			
 			final Element data = doc.createElement("data");
 
-			data.setAttribute("name", dataVals.getKey());
+			data.setAttribute("name", dataVals.getValue());
 			
-			data.setAttribute("source", "@" + dataVals.getValue());
+			data.setAttribute("source", "@" + dataVals.getKey());
 		
 			elem.appendChild(data);
 		}	
