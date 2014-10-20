@@ -65,6 +65,68 @@
                 }
             }
         }, {
+            "name": "mapping_nickname",
+            "id": 9,
+            "input_attribute_paths": [{
+                "type": "MappingAttributePathInstance",
+                "name": "feld_value__-1408543399700__0__",
+                "id": 12,
+                "attribute_path": {
+                    "id": 48,
+                    "attributes": [{
+                        "name": "feld",
+                        "uri": "http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld",
+                        "id": 40
+                    }, {
+                        "name": "value",
+                        "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#value",
+                        "id": 43
+                    }]
+                },
+                "filter": {
+                    "id": -1408543636706,
+                    "expression": "[{\"http://www.ddb.de/professionell/mabxml/mabxml-1.xsd#feld\\u001ehttp://www.ddb.de/professionell/mabxml/mabxml-1.xsd#nr\":\"001\"}]"
+                }
+            }],
+            "output_attribute_path": {
+                "type": "MappingAttributePathInstance",
+                "name": "output mapping attribute path instance",
+                "id": 13,
+                "attribute_path": {
+                    "id": 39,
+                    "attributes": [{
+                        "name": "humans",
+                        "uri": "http://example.org/humans",
+                        "id": 110
+                    }, {
+                        "name": "person",
+                        "uri": "http://example.org/person",
+                        "id": 111
+                    }, {
+                        "name": "contributor",
+                        "uri": "http://purl.org/dc/terms/contributor",
+                        "id": 10
+                    }, {
+                        "name": "givenName",
+                        "uri": "http://xmlns.com/foaf/0.1/givenName",
+                        "id": 35
+                    }]
+                }
+            },
+            "transformation": {
+                "name": "transformation",
+                "description": "transformation",
+                "function": {
+                    "name": "transformation",
+                    "description": "transformation",
+                    "type": "Transformation"
+                },
+                "parameter_mappings": {
+                    "__TRANSFORMATION_OUTPUT_VARIABLE__4": "output mapping attribute path instance",
+                    "feld_value__-1408543399700__0__": "feld_value__-1408543399700__0__"
+                }
+            }
+        }, {
             "name": "mapping_familyname",
             "id": 7,
             "input_attribute_paths": [{
